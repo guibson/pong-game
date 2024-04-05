@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gyroscope Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+        }
+
+        #gyro-data {
+            font-size: 18px;
+        }
+    </style>
+        <script>
+            var canvas;
+            var ctx;
+            var yPosition = 100;
+            var objectHeight = 100;
+            var raf;
+
+            var ball = {
+                x: 100,
+                y: 400,
+                velocityX: 5,
+                velocityY: 2,
+                radius: 25,
+                color: "blue",
+                draw: function () {
+                    console.log(this.x)
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, true);
+                    ctx.closePath();
+                    ctx.fillStyle = this.color;
+                    ctx.fill();
+                },
+            };
+
+            var bar = {
+                x: 70,
+                y: 100,
+                width: 15,
+                height: 100
+            }
+
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawBar()
+                ball.draw();
+                ball.x += ball.velocityX;
+                ball.y += ball.velocityY;
+
+                checkColision()
+                raf = window.requestAnimationFrame(draw);
+            }
+
+            function checkColision() {
+                // colision with canvas area
+                if (ball.y + ball.velocityY > canvas.height || ball.y + ball.velocityY < 0) {
+                    ball.velocityY = -ball.velocityY;
+                }
+                if (ball.x + ball.velocityX > canvas.width || ball.x + ball.velocityX < 0) {
+                    ball.velocityX = -ball.velocityX;
+                }
+
+                checkColisionBarBall()
+
+                // colision between ball and bar
+            }
+
+            function checkColisionBarBall() {
+                var distX = Math.abs(ball.x - bar.x - bar.width / 2);
+                var distY = Math.abs(ball.y - bar.y - bar.height / 2);
+                if (distX > (bar.width / 2 + ball.radius) || distY > (bar.height / 2 + ball.radius)) {
+                    console.log("Sem colisão detectada!");
+                } else if (distX <= (bar.width / 2) || distY <= (bar.height / 2)) {
+                    ball.velocityX = -ball.velocityX;
+                    console.log("colisão detectada! 111");
+                } 
+                
+            }
+
+            function createCanvas() {
+                canvas = document.getElementById("play");
+                ctx = canvas.getContext("2d");
+
+                ballListener()
+                createBackground()
+                drawBar()
+                ball.draw()
+            }
+
+            function createBackground() {
+                canvas.width = window.innerWidth * window.devicePixelRatio;
+                width = canvas.width
+                canvas.height = window.innerHeight * window.devicePixelRatio;
+                height = canvas.height
+                canvas.style.width = window.innerWidth + "px";
+                canvas.style.height = window.innerHeight + "px";
+                ctx.fillStyle = "green";
+                ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+            }
+
+            function drawBar() {
+                ctx.beginPath();
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                createBackground()
+                ctx.fillStyle = "black";
+                ctx.fillRect(bar.x, bar.y, bar.width, bar.height);
+            }
+
+            function giroInfo() {
+                var isDeviceMotion = 'DeviceMotionEvent' in window;
+                var isRequestPermission = DeviceMotionEvent.requestPermission === 'function';
+    
+                var gyroInfo = `
+                    isDeviceMotion: ${isDeviceMotion}<br>
+                    isRequestPermission: ${isRequestPermission}<br>
+                `;
+    
+                document.getElementById('gyro-info').innerHTML = gyroInfo;
+            }
+    
+            function clickButton() {
+                if (window.DeviceMotionEvent) {
+                    if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                        DeviceMotionEvent.requestPermission()
+                            .then(permissionState => {
+                                if (permissionState === 'granted') {
+                                    giroInfo()
+                                    window.addEventListener('devicemotion', handleMotion);
+                                }
+                            })
+                            .catch(console.error);
+                    } else {
+                        giroInfo()
+                        window.addEventListener('devicemotion', handleMotion);
+                    }
+                } else {
+                    giroInfo()
+                    document.getElementById('gyro-data').innerText = 'Seu dispositivo não suporta a API de Sensores.';
+                }
+            }
+    
+            function handleMotion(event) {
+                var rotationX = event.rotationRate.alpha;
+                var rotationY = event.rotationRate.beta;
+                var rotationY = event.rotationRate.gamma;
+
+                let movement = ''
+                if (rotationY < 0) {
+                   movement = "Movendo para cima";
+                } else {
+                  movement = "Movendo para baixo";
+                }
+    
+                var gyroData = `
+                    Rotação Y: ${rotationY.toFixed(2)}<br>
+                    ${movement}
+                    
+                `;
+    
+                document.getElementById('gyro-data').innerHTML = gyroData;
+            }
+        
+            function moveDownBar() {
+                bar.y += 100;
+                if (bar.y > canvas.height) {
+                    bar.y = -bar.height;
+                }
+                drawBar();
+            }
+
+            function moveUpBar() {
+                bar.y  -= 100;
+                if (bar.y  + bar.height < 0) {
+                    bar.y  = canvas.height;
+                }
+                drawBar();
+            }
+            
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'ArrowUp') {
+                    moveUpBar()
+                } else if (event.key === 'ArrowDown') {
+                    moveDownBar()
+                }
+            });
+
+            function ballListener() {
+                canvas.addEventListener("mouseover", function (e) {
+                    raf = window.requestAnimationFrame(draw);
+                });
+    
+                canvas.addEventListener("mouseout", function (e) {
+                    window.cancelAnimationFrame(raf);
+                });
+            }
+
+        </script>
+</head>
+
+<body onload="createCanvas()">
+    <canvas id="play"></canvas>
+    <!-- <button onclick="clickButton()">Click me</button> -->
+    <!-- <div id="gyro-info"></div>
+    <div id="gyro-data"></div> -->
+</body>
+
+</html>
